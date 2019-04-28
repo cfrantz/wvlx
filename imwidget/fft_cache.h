@@ -32,7 +32,7 @@ class FFTCache {
     inline size_t size() { return bitmap_.size(); }
 
     // Return a ref so imgui can adjust it.
-    inline float& gain() { return gain_; }
+    inline float& floor() { return floor_; }
   private:
     const FFTChannel* channel_;
     int fftsz_;
@@ -40,7 +40,7 @@ class FFTCache {
     int fragsz_;
     double rate_ = 0;
     double length_ = 0;
-    float gain_ = 1.0;
+    float floor_ = -50.0;
     std::vector<std::unique_ptr<GLBitmap>> bitmap_;
 };
 

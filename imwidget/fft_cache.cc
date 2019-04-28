@@ -17,11 +17,10 @@ void FFTCache::Redraw() {
             float re = f->at(y)[0];
             float im = f->at(y)[1];
             float mag = 2.0 * std::sqrt(re*re + im*im);
-            //if (mag > 1.0) mag = 1.0;
 
-            float amp = 50.0 + 20.0f * log10f(mag);
+            float amp = -floor_ + 20.0f * log10f(mag);
             if (amp < 0.0) amp = 0.0;
-            amp /= 50.0;
+            amp /= -floor_;
 
             float hue = twothirds - twothirds * amp;
             float val = 0.25f + 0.75f * amp;

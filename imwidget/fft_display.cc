@@ -12,10 +12,10 @@ using sound::Channel;
 
 void FFTDisplay(const char* label, audio::FFTCache* channel,
                 double *time0, double *zoom, double *vzoom,
+                double *vzero,
                 Transport* transport,
                 ImVec2 graph_size) {
     static ImVec2 ticksize = ImGui::CalcTextSize("00:00.000", nullptr, true);
-    static ImVec2 zoomsize = ImGui::CalcTextSize("Zoom", nullptr, true);
     static const float divisors[] = {500, 200, 100, 50, 20, 10, 5, 2, 1};
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -64,13 +64,21 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
         *time0 = t0;
     }
     double ts = (t1 - t0) / (inner_bb.Max.x - inner_bb.Min.x);
+    double t = t0 + ts;
     float width = inner_bb.Max.x - inner_bb.Min.x;
     float mid = (inner_bb.Max.y - inner_bb.Min.y) / 2.0;
     float hh = mid - label_size.y - ticksize.y;
-    const ImVec2 uvb(0.0, 0.0);
-    const ImVec2 uva(0.0, vzoom ? (1.0 / *vzoom) : 1.0);
 
-    double t = t0 + ts;
+    double v0 = vzero ? *vzero : 0.0;
+    double ivz = vzoom ? 1.0 / *vzoom : 1.0;
+    if (v0 + ivz > 1.0) {
+        v0 -= (v0+ivz) - 1.0;
+        if (vzero) *vzero = v0;
+    }
+
+    const ImVec2 uvb(0.0, v0);
+    const ImVec2 uva(0.0, v0 + ivz);
+
     ImVec2 cursor = ImGui::GetCursorPos();
     for(float x=0; x<width; x+=1.0f, t+=ts) {
         GLBitmap* bm = channel->at(t);
@@ -84,6 +92,14 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
                                       0xFF0000FF);
         }
     }
+
+    if (vzero) {
+        ImVec2 pos = inner_bb.Max - ImVec2(32, mid+hh);
+        ImGui::SetCursorScreenPos(pos);
+        double vmin = 0, vmax = 1;
+        ImGui::VSliderScalar("##vert", ImVec2(32, 2*hh), ImGuiDataType_Double, vzero, &vmin, &vmax);
+    }
+
     ImGui::SetCursorPos(cursor);
     ImGui::RenderTextClipped(ImVec2(frame_bb.Min.x, frame_bb.Min.y + style.FramePadding.y),
                       frame_bb.Max, label, nullptr, nullptr, ImVec2(0.5f,0.0f));
@@ -121,15 +137,16 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
     float vn = truncf(2.0*hh / ticksize.y) - 2;
     float vs = 2*hh / vn;
     double bsz = channel->rate() / double(channel->fftsz());
-    double vz = vzoom ? (1.0 / *vzoom) : 1.0;
-    vz *= double(channel->fftsz() / 2) / (2.0*hh);
+    double vscale = double(channel->fftsz() / 2) / (2.0*hh);
+    double vz = ivz * vscale;
+    bot = v0 / ivz * 2*hh;
     window->DrawList->AddLine(inner_bb.Min + ImVec2(0, mid-hh),
                               inner_bb.Min + ImVec2(0, mid+hh), 0xFFFFFFFF);
     int lastb = -1.0;
     float lasty = -100;
     for(float y=0; y<2.0*hh; y+=1) {
         if (y - lasty < vs) continue;
-        int bucket = y * vz;
+        int bucket = (bot + y) * vz;
         if (bucket == lastb) continue;
         char buf[32];
         //snprintf(buf, sizeof(buf), "%d Hz", int(bucket+0.5));
@@ -149,7 +166,7 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
     ImGui::SameLine();
     ImGui::InputDouble("VZoom", vzoom, 1.0, 10.0);
     ImGui::SameLine();
-    if (ImGui::InputFloat("Floor", &channel->gain(), 1.0, 10.0)) {
+    if (ImGui::InputFloat("Floor", &channel->floor(), 1.0, 10.0)) {
         channel->Redraw();
     }
     ImGui::PopItemWidth();

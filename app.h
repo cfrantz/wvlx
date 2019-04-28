@@ -33,6 +33,7 @@ class App: public ImApp {
     double time0_ = 0;
     double zoom_ = 1;
     double vzoom_ = 1;
+    double vzero_ = 0;
     Transport transport_ = {};
 
 };

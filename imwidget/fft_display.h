@@ -7,6 +7,7 @@
 void FFTDisplay(const char* label, audio::FFTCache* channel,
                 double *time0, double *zoom,
                 double *vzoom = nullptr,
+                double *vzero = nullptr,
                 Transport* transport = nullptr,
                 ImVec2 graph_size=ImVec2(0, 256));
 

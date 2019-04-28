@@ -34,7 +34,8 @@ void App::ProcessMessage(const std::string& msg, const void* extra) {
 
 void App::Load(const std::string& filename) {
     wav_ = std::move(sound::File::LoadAsMono(filename));
-    fft_.Init(8192, 8192, audio::FFTChannel::WindowFn::BLACKMAN);
+    wav_->channel(0)->set_interpolation(sound::Interpolation::Linear);
+    fft_.Init(4096, 4096, audio::FFTChannel::WindowFn::BLACKMAN);
     fft_.set_fragsz(512);
     fft_.Analyze(*wav_->channel(0));
     cache_ = absl::make_unique<audio::FFTCache>(&fft_);
@@ -134,6 +135,7 @@ save_as:
             TransportWidget(&transport_);
             WaveDisplay2("Waveform", wav_->channel(0), &time0_, &zoom_, &transport_);
             FFTDisplay("Spectrogram", cache_.get(), &time0_, &zoom_, &vzoom_,
+                    &vzero_,
                     &transport_,
                     ImVec2(0, 640));
             ImGui::End();
