@@ -44,3 +44,45 @@ cc_library(
         "//external:imgui",
     ],
 )
+
+cc_library(
+    name = "fft_cache",
+    hdrs = ["fft_cache.h"],
+    srcs = ["fft_cache.cc"],
+    deps = [
+        ":glbitmap",
+        "//audio:fft_channel",
+        "//external:imgui",
+    ],
+)
+
+cc_library(
+    name = "wave_display",
+    hdrs = ["wave_display.h"],
+    srcs = ["wave_display.cc"],
+    deps = [
+        ":transport",
+        "//external:imgui",
+        "//util/sound:file",
+    ],
+)
+
+cc_library(
+    name = "fft_display",
+    hdrs = ["fft_display.h"],
+    srcs = ["fft_display.cc"],
+    deps = [
+        ":glbitmap",
+        ":fft_cache",
+        ":transport",
+    ],
+)
+cc_library(
+    name = "transport",
+    hdrs = ["transport.h"],
+    srcs = ["transport.cc"],
+    deps = [
+        "//external:imgui",
+        "//external:fontawesome",
+    ],
+)

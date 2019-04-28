@@ -21,6 +21,8 @@ int main(int argc, char *argv[]) {
 
     project::App app("Empty Project");
     app.Init();
+    app.Load(argv[1]);
     app.Run();
+
     return 0;
 }

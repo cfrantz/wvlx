@@ -21,7 +21,9 @@ class GLBitmap {
     void DrawAt(int x, int y, float scale);
 
     inline uint32_t* data() { return data_; }
-    inline GLuint texture_id() { return texture_id_; }
+    inline GLuint texture_id() const { return texture_id_; }
+    inline void* imtexture() const {
+        return reinterpret_cast<void*>(texture_id_); }
     inline void SetPixel(int x, int y, uint32_t color) {
         data_[y * width_ + x] = color;
     }

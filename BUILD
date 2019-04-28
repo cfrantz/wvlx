@@ -32,8 +32,13 @@ cc_library(
         "app.cc",
     ],
     deps = [
+        "//audio:fft_channel",
         "//imwidget:base",
         "//imwidget:error_dialog",
+        "//imwidget:wave_display",
+        "//imwidget:fft_cache",
+        "//imwidget:fft_display",
+        "//imwidget:transport",
         "//util:browser",
         "//util:fpsmgr",
         "//util:imgui_sdl_opengl",
@@ -46,6 +51,7 @@ cc_library(
         # which builds with protbuf 3.x.x.  A temporary workaround is to
         # not link with nfd (native-file-dialog).
         "//external:nfd",
+        "@com_google_absl//absl/memory",
     ],
 )
 
@@ -67,7 +73,7 @@ genrule(
 )
 
 cc_binary(
-    name = "application",
+    name = "wvlx",
     linkopts = select({
         ":windows": [
             "-lpthread",
@@ -99,7 +105,17 @@ cc_binary(
     deps = [
         ":app",
         "//util:config",
+        "//util/sound:file",
         "//external:gflags",
+    ],
+)
+
+cc_binary(
+    name = "wavefile",
+    srcs = ["wavefile.cc"],
+    deps = [
+        "//util/sound:file",
+        "//util/sound:math",
     ],
 )
 
