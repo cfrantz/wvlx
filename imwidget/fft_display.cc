@@ -37,6 +37,7 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
     if (!ImGui::ItemAdd(frame_bb, 0, nullptr))
         return;
 
+    const bool hovered = ImGui::ItemHoverable(inner_bb, 0);
     ImGui::RenderFrame(frame_bb.Min, frame_bb.Max,
             ImGui::GetColorU32(ImGuiCol_FrameBg), true, style.FrameRounding);
 
@@ -115,8 +116,9 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
                               inner_bb.Min + ImVec2(width, bot - 1), 0xFFFFFFFF);
 
     // Draw the horizontal scale
-    t = t0; ts = (t1 - t0) / divisors[d];
-    for(float x=0; x < width+ww/2.0f; x+=ww, t+=ts) {
+    t = t0;
+    float ss = (t1 - t0) / divisors[d];
+    for(float x=0; x < width+ww/2.0f; x+=ww, t+=ss) {
         char buf[32];
         float m = int(t / 60.0);
         float s = t - 60.0*m;
@@ -158,6 +160,16 @@ void FFTDisplay(const char* label, audio::FFTCache* channel,
                                   inner_bb.Min + ImVec2(4, mid+hh-y), 0xFFFFFFFF);
         lasty = y;
         lastb = bucket;
+    }
+
+    float my = (g.IO.MousePos.y - inner_bb.Min.y);
+    if (hovered && my >= mid-hh && my < mid+hh) {
+        float t = t0 + (g.IO.MousePos.x - inner_bb.Min.x) * ts;
+        my = (mid+hh - my);
+        int bucket = (bot + my) * vz;
+        auto mf = channel->fft()->MagnitudeAt(t, bucket);
+        ImGui::SetTooltip("bin=%.0f Hz\nfreq=%.1f\nmag=%.2f dB",
+                bucket*bsz, mf.second, mf.first);
     }
 
     ImGui::PushID(channel);

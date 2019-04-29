@@ -31,6 +31,7 @@ class FFTCache {
     inline double length() const { return length_; }
     inline size_t size() { return bitmap_.size(); }
 
+    const FFTChannel* fft() const { return channel_; }
     // Return a ref so imgui can adjust it.
     inline float& floor() { return floor_; }
   private:

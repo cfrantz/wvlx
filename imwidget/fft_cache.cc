@@ -16,7 +16,7 @@ void FFTCache::Redraw() {
         for(int y=0; y<fftsz_/2; ++y) {
             float re = f->at(y)[0];
             float im = f->at(y)[1];
-            float mag = 2.0 * std::sqrt(re*re + im*im);
+            float mag = 2.0 * sqrtf(re*re + im*im);
 
             float amp = -floor_ + 20.0f * log10f(mag);
             if (amp < 0.0) amp = 0.0;

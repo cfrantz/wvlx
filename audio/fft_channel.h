@@ -1,6 +1,9 @@
 #ifndef WVLX_AUDIO_FFT_CHANNEL_H
 #define WVLX_AUDIO_FFT_CHANNEL_H
+#include <cmath>
+#include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 #include <fftw3.h>
 #include "util/sound/file.h"
@@ -26,13 +29,15 @@ class FFTChannel {
     void Analyze(const sound::Channel& channel);
 
     const Fragment* at(double tm) const {
-        size_t n = size_t(tm * rate_) / winsz_;
+        size_t n = size_t(tm * rate_) / fragsz_;
         return fft(n);
     }
     const Fragment* fft(size_t n) const {
         return n < cache_.size() ? cache_.at(n).get()
                                  : empty_.get();
     }
+
+    std::pair<float, float> MagnitudeAt(double tm, size_t bin) const;
 
     inline int fftsz() const { return fftsz_; }
     inline int winsz() const { return winsz_; }
