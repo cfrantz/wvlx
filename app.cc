@@ -5,8 +5,10 @@
 #include "absl/log/log.h"
 #include "absl/strings/match.h"
 #include "imwidget/error_dialog.h"
+#include "imwidget/audio_data.h"
 #include "util/browser.h"
 #include "util/os.h"
+#include "util/sound/file.h"
 
 #include "version.h"
 
@@ -123,9 +125,7 @@ save_as:
 
     if (igfd->Display("FileOpen")) {
         if (igfd->IsOk()) {
-            std::string filename = igfd->GetFilePathName();
-            LOG(ERROR) << "File|Open: " << filename;
-            save_filename_ = filename;
+            Load(igfd->GetFilePathName());
         }
         igfd->Close();
     }
@@ -150,6 +150,17 @@ save_as:
         free(filename);
     }
 #endif
+}
+
+void App::Load(const std::string& filename) {
+    auto sf = sound::File::LoadAsMono(filename);
+    if (sf.ok()) {
+        auto file = std::move(sf.value());
+        file->channel(0)->Resample(48000);
+        AddDrawCallback(new AudioData(file.get()));
+    } else {
+        LOG(ERROR) << "Open " << filename << ": " << sf.status();
+    }
 }
 
 void App::Help(const std::string& topickey) {

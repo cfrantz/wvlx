@@ -7,12 +7,12 @@ GLBitmap::GLBitmap()
     height_(0),
     texture_id_(0) {}
 
-GLBitmap::GLBitmap(int w, int h, uint32_t* data)
+GLBitmap::GLBitmap(int w, int h, uint32_t* data, bool smooth)
   : width_(w),
     height_(h),
     texture_id_(0)
 {
-    Allocate(data);
+    Allocate(data, false, smooth);
 }
 
 GLBitmap::GLBitmap(GLBitmap&& other)
@@ -30,7 +30,7 @@ GLBitmap::~GLBitmap() {
         glDeleteTextures(1, &texture_id_);
 }
 
-uint32_t* GLBitmap::Allocate(uint32_t* data, bool claim_ownership) {
+uint32_t* GLBitmap::Allocate(uint32_t* data, bool claim_ownership, bool smooth) {
     data_ = data ? data : new uint32_t[width_ * height_]();
     owned_data_.reset(claim_ownership ? data_ : nullptr);
 
@@ -40,10 +40,15 @@ uint32_t* GLBitmap::Allocate(uint32_t* data, bool claim_ownership) {
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1, &texture_id_);
     glBindTexture(GL_TEXTURE_2D, texture_id_);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if (smooth) {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    } else {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
                  width_, height_, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, (void*)data_);

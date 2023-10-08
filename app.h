@@ -17,6 +17,7 @@ class App: public ImApp {
     void ProcessEvent(SDL_Event* event) override;
     void ProcessMessage(const std::string& msg, const void* extra) override;
     void Draw() override;
+    void Load(const std::string& filename);
 
     void Help(const std::string& topickey);
   private:

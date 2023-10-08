@@ -43,3 +43,18 @@ cc_library(
         "@com_github_imgui//:imgui",
     ],
 )
+
+cc_library(
+    name = "audio_data",
+    srcs = ["audio_data.cc"],
+    hdrs = ["audio_data.h"],
+    deps = [
+        ":base",
+        "//audio:fft_channel",
+        "//audio:fft_image_cache",
+        "//util/sound:file",
+        "@com_github_imgui//:imgui",
+        "@com_github_implot//:implot",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)

@@ -10,18 +10,20 @@
 class GLBitmap {
   public:
     GLBitmap();
-    GLBitmap(int w, int h, uint32_t* data=nullptr);
+    GLBitmap(int w, int h, uint32_t* data=nullptr, bool smooth=false);
     GLBitmap(GLBitmap&& other);
     ~GLBitmap();
 
-    uint32_t* Allocate(uint32_t* data=nullptr, bool claim_ownership=true);
+    uint32_t* Allocate(uint32_t* data=nullptr, bool claim_ownership=true, bool smooth=false);
     void Update();
     void Draw(int w=0, int h=0);
     void DrawAt(int x, int y, int w=0, int h=0);
     void DrawAt(int x, int y, float scale);
 
     inline uint32_t* data() { return data_; }
-    inline GLuint texture_id() { return texture_id_; }
+    inline GLuint texture_id() const { return texture_id_; }
+    inline void* imtexture() const {
+        return reinterpret_cast<void*>(texture_id_); }
     inline void SetPixel(int x, int y, uint32_t color) {
         data_[y * width_ + x] = color;
     }
