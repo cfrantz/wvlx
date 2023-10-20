@@ -4,10 +4,10 @@
 #include <vector>
 
 #include "audio/fft_channel.h"
-#include "imwidget/glbitmap.h"
 #include "implot.h"
+#include "imwidget/glbitmap.h"
 
-namespace audio {
+namespace wvx {
 
 class FFTImageCache {
   public:
@@ -15,14 +15,10 @@ class FFTImageCache {
         Linear,
         Logarithmic,
     };
-    FFTImageCache()
-      : channel_(nullptr),
-      style_(Style::Linear) {}
+    FFTImageCache() : channel_(nullptr), style_(Style::Linear) {}
 
-    FFTImageCache(const FFTChannel* channel, Style style=Style::Linear)
-      : channel_(channel),
-      style_(style),
-      bitmap_(channel->size()) {}
+    FFTImageCache(const FFTChannel* channel, Style style = Style::Linear)
+        : channel_(channel), style_(style), bitmap_(channel->size()) {}
 
     ~FFTImageCache() {}
 
@@ -38,7 +34,7 @@ class FFTImageCache {
         clear();
     }
 
-    void set_colormap(ImPlotColormap cmap, bool invert=false) {
+    void set_colormap(ImPlotColormap cmap, bool invert = false) {
         cmap_ = cmap;
         invert_ = invert;
         clear();
@@ -53,9 +49,7 @@ class FFTImageCache {
         floor_ = floor;
         clear();
     }
-    float floor() const {
-        return floor_;
-    }
+    float floor() const { return floor_; }
 
   private:
     GLBitmap* PlotLinear(size_t index);
@@ -72,5 +66,5 @@ class FFTImageCache {
     ImPlotColormap cmap_ = ImPlotColormap_Spectral;
     bool invert_ = true;
 };
-}  // namespace audio
-#endif // WVLX2_AUDIO_FFT_IMAGE_CACHE_H
+}  // namespace wvx
+#endif  // WVLX2_AUDIO_FFT_IMAGE_CACHE_H

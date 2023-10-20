@@ -10,7 +10,8 @@ cc_library(
     ],
     deps = [
         "//util:os",
-        "//util/sound:file",
+        "//proto:sound",
+        "//proto:wvx",
         "@com_google_absl//absl/log",
     ],
 )

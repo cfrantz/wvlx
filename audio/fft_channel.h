@@ -1,14 +1,17 @@
 #ifndef WVLX_AUDIO_FFT_CHANNEL_H
 #define WVLX_AUDIO_FFT_CHANNEL_H
+#include <fftw3.h>
+
 #include <cmath>
 #include <limits>
 #include <memory>
 #include <utility>
 #include <vector>
-#include <fftw3.h>
-#include "util/sound/file.h"
 
-namespace audio {
+#include "proto/sound.pb.h"
+#include "proto/wvx.pb.h"
+
+namespace wvx {
 class FFTChannel {
   public:
     using Fragment = std::vector<fftwf_complex>;
@@ -19,56 +22,55 @@ class FFTChannel {
         GAUSSIAN,
     };
 
-    FFTChannel(int fftsz, WindowFn wf)
-      : fftsz_(fftsz),
-      fragsz_(fftsz),
-      winfn_(wf),
-      window_(fftsz) { Init(); }
+    FFTChannel(proto::FFTCache* cache, bool take_ownership = false) {
+        Init(cache->fftsz(), WindowFn::RECTANGULAR, cache);
+        owning_ = take_ownership;
+    }
+    FFTChannel(int fftsz, WindowFn wf) { Init(fftsz, wf, nullptr); }
     FFTChannel() : FFTChannel(4096, WindowFn::BLACKMAN_HARRIS) {}
     ~FFTChannel();
 
-    void Analyze(const sound::Channel& channel);
+    void Analyze(const sound::proto::File& file, int chan);
 
-    const Fragment* at(double tm) const {
-        size_t n = size_t(tm * rate_) / fragsz_;
+    const proto::Fragment& at(double tm) const {
+        int n = size_t(tm * rate()) / fragsz();
         return fft(n);
     }
-    const Fragment* fft(size_t n) const {
-        return n < cache_.size() ? cache_.at(n).get()
-                                 : empty_.get();
+    const proto::Fragment& fft(int i) const {
+        if (i >= 0 && i < cache_->fragment_size()) {
+            return cache_->fragment(i);
+        } else {
+            return empty_;
+        }
     }
 
-    std::pair<float, float> RawMagnitudeAt(size_t index, size_t bin) const;
-    std::pair<float, float> MagnitudeAt(double tm, size_t bin) const;
+    std::pair<float, float> RawMagnitudeAt(int index, int bin) const;
+    std::pair<float, float> MagnitudeAt(double tm, int bin) const;
 
-    inline int fftsz() const { return fftsz_; }
-    inline int fragsz() const { return fragsz_; }
-    inline double rate() const { return rate_; }
-    inline double length() const { return length_; }
-    inline size_t size() const { return cache_.size(); }
+    inline int fftsz() const { return cache_->fftsz(); }
+    inline int fragsz() const { return cache_->fragsz(); }
+    inline double rate() const { return cache_->rate(); }
+    inline double length() const { return cache_->length(); }
+    inline size_t size() const { return cache_->fragment_size(); }
 
-    inline void set_fragsz(int f) { fragsz_ = f; }
+    inline void set_fragsz(int f) { cache_->set_fragsz(f); }
 
   private:
-    void Init(void);
+    void Init(int fftsz, WindowFn wf, proto::FFTCache* cache);
     float Rectangular(float n);
     float Blackman(float n);
     float BlackmanHarris(float n);
     float Gaussian(float n);
     float Windowed(float samp, int wpos);
 
-    int fftsz_;
-    int fragsz_;
-    WindowFn winfn_;
     fftwf_plan plan_;
-    fftwf_complex *in_ = nullptr;
-    fftwf_complex *out_ = nullptr;
-    double rate_ = 0;
-    double length_ = 0;
+    fftwf_complex* in_ = nullptr;
+    fftwf_complex* out_ = nullptr;
+    proto::FFTCache* cache_ = nullptr;
+    bool owning_ = false;
+    proto::Fragment empty_;
     std::vector<float> window_;
-    std::vector<std::unique_ptr<Fragment>> cache_;
-    std::unique_ptr<Fragment> empty_;
 };
-}  // namespace
+}  // namespace wvx
 
-#endif // WVLX_AUDIO_FFT_CHANNEL_H
+#endif  // WVLX_AUDIO_FFT_CHANNEL_H
