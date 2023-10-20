@@ -1,15 +1,15 @@
+#include "app.h"
+
 #include <cstdio>
 
-#include "app.h"
-#include "imgui.h"
 #include "absl/log/log.h"
 #include "absl/strings/match.h"
-#include "imwidget/error_dialog.h"
+#include "imgui.h"
 #include "imwidget/audio_data.h"
+#include "imwidget/error_dialog.h"
 #include "util/browser.h"
 #include "util/os.h"
 #include "util/sound/file.h"
-
 #include "version.h"
 
 #ifdef HAVE_NFD
@@ -18,33 +18,27 @@
 #include "ImGuiFileDialog.h"
 #include "implot.h"
 
-
 namespace project {
 
 App::App(const std::string& name) : ImApp(name, 1280, 720) {
     ImPlot::CreateContext();
 }
-App::~App() {
-    ImPlot::DestroyContext();
-}
+App::~App() { ImPlot::DestroyContext(); }
 
-void App::Init() {
-}
+void App::Init() {}
 
-void App::ProcessEvent(SDL_Event* event) {
-}
+void App::ProcessEvent(SDL_Event* event) {}
 
-void App::ProcessMessage(const std::string& msg, const void* extra) {
-}
+void App::ProcessMessage(const std::string& msg, const void* extra) {}
 
 void App::Draw() {
-    ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
     auto* igfd = ImGuiFileDialog::Instance();
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
 #ifdef HAVE_NFD
-                char *filename = nullptr;
+                char* filename = nullptr;
                 auto result = NFD_OpenDialog("z2prj;nes", nullptr, &filename);
                 if (result == NFD_OKAY) {
                     // DOSTUFF
@@ -52,20 +46,20 @@ void App::Draw() {
                 }
                 free(filename);
 #else
-                igfd->OpenDialog("FileOpen", "Open File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+                igfd->OpenDialog("FileOpen", "Open File", ".*", ".", 1, nullptr,
+                                 ImGuiFileDialogFlags_Modal);
 
 #endif
             }
 
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                if (save_filename_.empty())
-                    goto save_as;
+                if (save_filename_.empty()) goto save_as;
                 // DOSTUFF
             }
             if (ImGui::MenuItem("Save As")) {
-save_as:
+            save_as:
 #ifdef HAVE_NFD
-                char *filename = nullptr;
+                char* filename = nullptr;
                 auto result = NFD_SaveDialog("z2prj", nullptr, &filename);
                 if (result == NFD_OKAY) {
                     std::string savefile = filename;
@@ -73,29 +67,31 @@ save_as:
                         save_filename_.assign(savefile);
                         // DOSTUFF
                     } else {
-                        ErrorDialog::Spawn("Bad File Extension",
+                        ErrorDialog::Spawn(
+                            "Bad File Extension",
                             ErrorDialog::OK | ErrorDialog::CANCEL,
                             "Project files should have the extension .z2prj\n"
-                            "If you want to save a .nes file, use File | Export\n\n"
-                            "Press 'OK' to save anyway.\n")->set_result_cb(
-                                [=](int result) {
-                                    if (result == ErrorDialog::OK) {
-                                        save_filename_.assign(savefile);
-                                        // DOSTUFF
-                                    }
-                                });
+                            "If you want to save a .nes file, use File | "
+                            "Export\n\n"
+                            "Press 'OK' to save anyway.\n")
+                            ->set_result_cb([=](int result) {
+                                if (result == ErrorDialog::OK) {
+                                    save_filename_.assign(savefile);
+                                    // DOSTUFF
+                                }
+                            });
                     }
                 }
                 free(filename);
 #else
-                igfd->OpenDialog("FileSaveAs", "Save File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+                igfd->OpenDialog("FileSaveAs", "Save File", ".*", ".", 1,
+                                 nullptr, ImGuiFileDialogFlags_Modal);
 #endif
             }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            ImGui::MenuItem("Debug Console", nullptr,
-                            &console_.visible());
+            ImGui::MenuItem("Debug Console", nullptr, &console_.visible());
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
@@ -107,16 +103,15 @@ save_as:
                 Help("root");
             }
             if (ImGui::MenuItem("About")) {
-                ErrorDialog::Spawn("About App",
-                    "Empty Project\n\n",
+                ErrorDialog::Spawn("About App", "Empty Project\n\n",
 #ifdef BUILD_GIT_VERSION
-                    "Version: ", BUILD_GIT_VERSION, "-", BUILD_SCM_STATUS
+                                   "Version: ", BUILD_GIT_VERSION, "-",
+                                   BUILD_SCM_STATUS
 #else
-                    "Version: Unknown"
+                                   "Version: Unknown"
 #warning "Built without version stamp"
 #endif
-                    );
-
+                );
             }
             ImGui::EndMenu();
         }
@@ -153,17 +148,17 @@ save_as:
 }
 
 void App::Load(const std::string& filename) {
-    auto sf = sound::File::LoadAsMono(filename);
+    auto sf = sound::File::Load(filename);
     if (sf.ok()) {
         auto file = std::move(sf.value());
-        file->channel(0)->Resample(48000);
-        AddDrawCallback(new AudioData(file.get()));
+        file->ConvertToMono();
+        // file->channel(0)->Resample(48000);
+        AddDrawCallback(new AudioData(std::move(file)));
     } else {
         LOG(ERROR) << "Open " << filename << ": " << sf.status();
     }
 }
 
-void App::Help(const std::string& topickey) {
-}
+void App::Help(const std::string& topickey) {}
 
 }  // namespace project

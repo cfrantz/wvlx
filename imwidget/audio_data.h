@@ -1,26 +1,28 @@
 #ifndef WVLX2_IMWIDGET_AUDIO_DATA_H
 #define WVLX2_IMWIDGET_AUDIO_DATA_H
 #include <memory>
-#include "imwidget/imwidget.h"
+
 #include "audio/fft_channel.h"
 #include "audio/fft_image_cache.h"
+#include "imwidget/imwidget.h"
 #include "util/sound/file.h"
 
-class AudioData: public ImWindowBase {
+class AudioData : public ImWindowBase {
   public:
-    AudioData(sound::File *file);
+    AudioData(std::unique_ptr<sound::File> file);
     ~AudioData() override {}
 
     bool Draw() override;
+
   private:
     void Init();
-    void SpectrumPopup(const char *name);
-    static int XFormat(double value, char *buf, int size, void *data);
+    void SpectrumPopup(const char* name);
+    static int XFormat(double value, char* buf, int size, void* data);
 
-    std::shared_ptr<sound::Channel> chan_;
-    audio::FFTChannel fft_;
-    audio::FFTImageCache fcache_;
-    audio::FFTImageCache ncache_;
+    std::unique_ptr<sound::File> wave_;
+    wvx::FFTChannel fft_;
+    wvx::FFTImageCache fcache_;
+    wvx::FFTImageCache ncache_;
     bool display_notes_ = false;
 
     std::vector<double> note_ys_;
@@ -29,4 +31,4 @@ class AudioData: public ImWindowBase {
     ImPlotRect limits_ = ImPlotRect(0, 1, 0, 1);
 };
 
-#endif // WVLX2_IMWIDGET_AUDIO_DATA_H
+#endif  // WVLX2_IMWIDGET_AUDIO_DATA_H
