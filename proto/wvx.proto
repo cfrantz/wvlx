@@ -1,0 +1,17 @@
+syntax = "proto3";
+package wvx.proto;
+
+// WIP
+
+message Fragment {
+    repeated float re = 1;
+    repeated float im = 2;
+}
+
+message FFTCache {
+    int32 fftsz = 1;
+    int32 fragsz = 2;
+    double rate = 3;
+    double length = 4;
+    repeated Fragment fragments = 5;
+}

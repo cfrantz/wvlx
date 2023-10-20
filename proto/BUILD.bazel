@@ -1,14 +1,25 @@
 package(default_visibility = ["//visibility:public"])
 
-## proto_library(
-##     name = "rominfo_proto",
-##     srcs = [
-##         "rominfo.proto",
-##         "keybinds.proto",
-##     ],
-## )
-##
-## cc_proto_library(
-##     name = "rominfo",
-##     deps = [":rominfo_proto"],
-## )
+proto_library(
+    name = "sound_proto",
+    srcs = [
+        "sound.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "sound",
+    deps = [":sound_proto"],
+)
+
+proto_library(
+    name = "wvx_proto",
+    srcs = [
+        "wvx.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "wvx",
+    deps = [":wvx_proto"],
+)
