@@ -17,6 +17,8 @@ class AudioData : public ImWindowBase {
   private:
     void Init();
     void SpectrumPopup(const char* name);
+    void DrawMenu();
+    void DrawGraph();
     static int XFormat(double value, char* buf, int size, void* data);
 
     std::unique_ptr<sound::File> wave_;

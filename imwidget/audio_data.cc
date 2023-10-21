@@ -86,7 +86,27 @@ void AudioData::SpectrumPopup(const char* name) {
 }
 
 bool AudioData::Draw() {
-    ImGui::Begin("Audio Data");
+    ImGui::Begin("Audio Data", &visible_, ImGuiWindowFlags_MenuBar);
+    DrawMenu();
+    DrawGraph();
+    ImGui::End();
+    if (!visible_) want_dispose_ = true;
+    return true;
+}
+
+void AudioData::DrawMenu() {
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Close")) {
+                visible_ = false;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+}
+
+void AudioData::DrawGraph() {
     static ImPlotRect lims(0, 1, 0, 1);
 
     if (ImPlot::BeginAlignedPlots("AlignedData")) {
@@ -220,6 +240,4 @@ bool AudioData::Draw() {
 
         ImPlot::EndAlignedPlots();
     }
-    ImGui::End();
-    return true;
 }
