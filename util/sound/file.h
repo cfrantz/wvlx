@@ -60,7 +60,7 @@ class File {
     float Sample(int ch, double i) const { return Sample(ch, int(rate() * i)); }
     float Peak(int ch, int s0, int s1) const;
 
-    const proto::File& data() { return *file_; }
+    const proto::File& data() const { return *file_; }
     proto::File* release() {
         owning_ = false;
         return file_;
