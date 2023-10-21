@@ -55,6 +55,16 @@ class FFTChannel {
 
     inline void set_fragsz(int f) { cache_->set_fragsz(f); }
 
+    const proto::FFTCache& data() const { return *cache_; }
+    proto::FFTCache* release() {
+        owning_ = false;
+        return cache_;
+    };
+    void replace(proto::FFTCache* c) {
+        if (owning_) delete cache_;
+        cache_ = c;
+    }
+
   private:
     void Init(int fftsz, WindowFn wf, proto::FFTCache* cache);
     float Rectangular(float n);
