@@ -1,6 +1,7 @@
 syntax = "proto3";
 package wvx.proto;
 
+import "proto/sound.proto";
 // WIP
 
 message Fragment {
@@ -14,4 +15,10 @@ message FFTCache {
     double rate = 3;
     double length = 4;
     repeated Fragment fragment = 5;
+}
+
+message Project {
+    string file_type_detector = 1;
+    sound.proto.File wave = 2;
+    FFTCache fft = 3;
 }

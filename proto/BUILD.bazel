@@ -17,6 +17,9 @@ proto_library(
     srcs = [
         "wvx.proto",
     ],
+    deps = [
+        ":sound_proto",
+    ],
 )
 
 cc_proto_library(

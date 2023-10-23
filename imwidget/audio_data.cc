@@ -3,9 +3,12 @@
 #include <cstdint>
 
 #include "absl/flags/flag.h"
+#include "absl/log/log.h"
 #include "absl/strings/str_format.h"
 #include "imgui.h"
 #include "implot.h"
+#include "util/os.h"
+#include "util/proto_file.h"
 
 ABSL_FLAG(double, A4, 440.0, "Pitch of A4 in hertz");
 
@@ -44,6 +47,21 @@ AudioData::AudioData(std::unique_ptr<sound::File> file) : ImWindowBase() {
     wave_ = std::move(file);
     fft_.set_fragsz(wave_->rate() / 50.0);
     fft_.Analyze(wave_->data(), 0);
+    fcache_.set_channel(&fft_);
+    ncache_.set_channel(&fft_);
+    ncache_.set_style(wvx::FFTImageCache::Logarithmic);
+
+    project_.set_file_type_detector("WvxProjectFile");
+    project_.set_allocated_wave(wave_->release());
+    project_.set_allocated_fft(fft_.release());
+}
+
+AudioData::AudioData(wvx::proto::Project&& project) : ImWindowBase() {
+    Init();
+    project_ = project;
+
+    wave_ = std::make_unique<sound::File>(project_.mutable_wave());
+    fft_ = wvx::FFTChannel(project_.mutable_fft());
     fcache_.set_channel(&fft_);
     ncache_.set_channel(&fft_);
     ncache_.set_style(wvx::FFTImageCache::Logarithmic);
@@ -97,12 +115,29 @@ bool AudioData::Draw() {
 void AudioData::DrawMenu() {
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Save")) {
+                if (filename_.empty()) goto save_as;
+                (void)ProtoFile::Save(filename_, project_);
+            }
+            if (ImGui::MenuItem("Save As")) {
+            save_as:
+                file_dialog_.OpenDialog("SaveAs", "Save Project", ".*", ".", 1,
+                                        nullptr, ImGuiFileDialogFlags_Modal);
+            }
             if (ImGui::MenuItem("Close")) {
                 visible_ = false;
             }
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
+    }
+
+    if (file_dialog_.Display("SaveAs")) {
+        if (file_dialog_.IsOk()) {
+            filename_ = file_dialog_.GetFilePathName();
+            (void)ProtoFile::Save(filename_, project_);
+        }
+        file_dialog_.Close();
     }
 }
 

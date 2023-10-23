@@ -88,9 +88,12 @@ void FFTChannel::Init(int fftsz, WindowFn wf, proto::FFTCache* cache) {
 }
 
 FFTChannel::~FFTChannel() {
-    fftwf_destroy_plan(plan_);
-    fftwf_free(in_);
-    fftwf_free(out_);
+    if (in_) {
+        // Why does the library segfault here?
+        //fftwf_destroy_plan(plan_);
+        //fftwf_free(in_);
+        //fftwf_free(out_);
+    }
 }
 
 std::pair<float, float> FFTChannel::RawMagnitudeAt(int index, int bin) const {

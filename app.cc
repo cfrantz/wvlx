@@ -7,8 +7,11 @@
 #include "imgui.h"
 #include "imwidget/audio_data.h"
 #include "imwidget/error_dialog.h"
+#include "proto/wvx.pb.h"
 #include "util/browser.h"
+#include "util/file.h"
 #include "util/os.h"
+#include "util/proto_file.h"
 #include "util/sound/file.h"
 #include "version.h"
 
@@ -148,17 +151,48 @@ void App::Draw() {
 }
 
 void App::Load(const std::string& filename) {
-    auto sf = sound::File::Load(filename);
-    if (sf.ok()) {
-        auto file = std::move(sf.value());
-        file->ConvertToMono();
-        // file->channel(0)->Resample(48000);
-        AddDrawCallback(new AudioData(std::move(file)));
-    } else {
-        LOG(ERROR) << "Open " << filename << ": " << sf.status();
+    switch (DetectFileType(filename)) {
+        case FileType::Error:
+            LOG(ERROR) << "Error opening " << filename;
+            break;
+        case FileType::Unknown: {
+            auto sf = sound::File::Load(filename);
+            if (sf.ok()) {
+                (*sf)->ConvertToMono();
+                AddDrawCallback(new AudioData(std::move(*sf)));
+            } else {
+                LOG(ERROR) << "Error opening " << filename << ": "
+                           << sf.status();
+            }
+            break;
+        }
+        case FileType::Wvx: {
+            auto pf = ProtoFile::Load<wvx::proto::Project>(filename);
+            if (pf.ok()) {
+                AddDrawCallback(new AudioData(std::move(*pf)));
+            } else {
+                LOG(ERROR) << "Error opening " << filename << ": "
+                           << pf.status();
+            }
+            break;
+        }
     }
 }
 
+App::FileType App::DetectFileType(const std::string& filename) {
+    auto f = File::Open(filename, "rb");
+    if (f == nullptr) {
+        return FileType::Error;
+    }
+    std::string header;
+    if (!f->Read(&header, 256).ok()) {
+        return FileType::Error;
+    }
+    if (header.find("WvxProjectFile") != std::string::npos) {
+        return FileType::Wvx;
+    }
+    return FileType::Unknown;
+}
 void App::Help(const std::string& topickey) {}
 
 }  // namespace project

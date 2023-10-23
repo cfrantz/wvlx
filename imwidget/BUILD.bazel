@@ -53,8 +53,10 @@ cc_library(
         "//audio:fft_channel",
         "//audio:fft_image_cache",
         "//util/sound:file",
+        "//util:proto_file",
         "@com_github_imgui//:imgui",
         "@com_github_implot//:implot",
         "@com_google_absl//absl/flags:flag",
+        "@com_github_igfd//:igfd",
     ],
 )
