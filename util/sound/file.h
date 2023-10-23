@@ -9,6 +9,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "lru_cache/lru_cache.h"
 #include "proto/sound.pb.h"
 
 namespace sound {
@@ -22,9 +23,9 @@ enum class Interpolation {
 
 class File {
   public:
-    File() = default;
+    File() : peaks_(50000) {}
     File(proto::File* file, bool take_ownership = false)
-        : file_(file), owning_(take_ownership) {}
+        : file_(file), owning_(take_ownership), peaks_(50000) {}
     virtual ~File() {
         if (owning_) delete file_;
     }
@@ -73,6 +74,7 @@ class File {
   private:
     proto::File* file_ = nullptr;
     bool owning_ = false;
+    mutable lru_cache::NodeLruCache<std::tuple<int, int, int>, float> peaks_;
 };
 
 }  // namespace sound

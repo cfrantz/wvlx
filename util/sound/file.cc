@@ -145,6 +145,12 @@ void File::ConvertToMono() {
 }
 
 float File::Peak(int ch, int s0, int s1) const {
+    auto key = std::make_tuple(ch, s0, s1);
+    const float* value = peaks_.get_or_null(key);
+    if (value) {
+        return *value;
+    }
+
     auto& channel = file_->channel(ch);
     float peak = 0.0f;
     for (int i = s0; i < s1; ++i) {
@@ -152,7 +158,7 @@ float File::Peak(int ch, int s0, int s1) const {
             (i >= 0 && i < channel.data_size()) ? channel.data(i) : 0.0f;
         peak = std::max(peak, std::abs(sample));
     }
-    return peak;
+    return peaks_.insert(key, peak);
 }
 
 }  // namespace sound

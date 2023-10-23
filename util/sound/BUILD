@@ -9,6 +9,7 @@ cc_library(
     ],
     deps = [
         "//proto:sound",
+        "@com_github_nitnelave_lru_cache//:lru_cache",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
