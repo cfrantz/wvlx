@@ -49,6 +49,11 @@ class FFTImageCache {
         floor_ = floor;
         clear();
     }
+
+    void set_a4(double a4) {
+        A4_ = a4;
+        clear();
+    }
     float floor() const { return floor_; }
 
   private:
@@ -65,6 +70,7 @@ class FFTImageCache {
     float floor_ = -50.0f;
     ImPlotColormap cmap_ = ImPlotColormap_Spectral;
     bool invert_ = true;
+    double A4_ = 440.0;
 };
 }  // namespace wvx
 #endif  // WVLX2_AUDIO_FFT_IMAGE_CACHE_H

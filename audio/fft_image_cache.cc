@@ -4,12 +4,8 @@
 #include <cmath>
 #include <cstdint>
 
-#include "absl/flags/declare.h"
-#include "absl/flags/flag.h"
 #include "implot.h"
 #include "implot_internal.h"
-
-ABSL_DECLARE_FLAG(double, A4);
 
 namespace wvx {
 namespace {
@@ -63,7 +59,7 @@ GLBitmap* FFTImageCache::PlotLogarithmic(size_t index) {
     bitmap_[index] = std::make_unique<GLBitmap>(1, height, nullptr, true);
     auto* bm = bitmap_[index].get();
     int fft_bins = channel_->fftsz() / 2;
-    double cm1 = (absl::GetFlag(FLAGS_A4) / 16.0) * 0.5946;
+    double cm1 = (A4_ / 16.0) * 0.5946;
     float bucket[height] = {
         0.0,
     };

@@ -22,6 +22,7 @@ class AudioData : public ImWindowBase {
     void SpectrumPopup(const char* name);
     void DrawMenu();
     void DrawGraph();
+    const char* ApproximateNote(double f) const;
     static int XFormat(double value, char* buf, int size, void* data);
 
     std::unique_ptr<sound::File> wave_;
@@ -37,6 +38,7 @@ class AudioData : public ImWindowBase {
     ImPlotRect limits_ = ImPlotRect(0, 1, 0, 1);
     std::string filename_;
     ImGuiFileDialog file_dialog_;
+    double A4_ = 440.0;
 };
 
 #endif  // WVLX2_IMWIDGET_AUDIO_DATA_H

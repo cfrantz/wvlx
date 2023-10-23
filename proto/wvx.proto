@@ -21,4 +21,5 @@ message Project {
     string file_type_detector = 1;
     sound.proto.File wave = 2;
     FFTCache fft = 3;
+    double a4 = 4;
 }

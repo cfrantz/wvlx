@@ -16,11 +16,11 @@ const char* notes[] = {
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 };
 
-const char* ApproximateNote(double f) {
+const char* AudioData::ApproximateNote(double f) const {
     static char buf[64];
     // Compute the frequency of C-1 from A440 (A440/32 = A-1, 0.5946 is the
     // ration between C and A).
-    double cm1 = (absl::GetFlag(FLAGS_A4) / 32.0) * 0.5946;
+    double cm1 = (A4_ / 32.0) * 0.5946;
     static constexpr double LOG2 = std::log(2.0);
     int cents_from_cm1 = 1200.0 * (std::log(f / cm1) / LOG2);
     int semitones = cents_from_cm1 / 100;
@@ -48,8 +48,11 @@ AudioData::AudioData(std::unique_ptr<sound::File> file) : ImWindowBase() {
     fft_.set_fragsz(wave_->rate() / 50.0);
     fft_.Analyze(wave_->data(), 0);
     fcache_.set_channel(&fft_);
+    fcache_.set_a4(A4_);
     ncache_.set_channel(&fft_);
+    ncache_.set_a4(A4_);
     ncache_.set_style(wvx::FFTImageCache::Logarithmic);
+    project_.set_a4(A4_);
 
     project_.set_file_type_detector("WvxProjectFile");
     project_.set_allocated_wave(wave_->release());
@@ -60,14 +63,18 @@ AudioData::AudioData(wvx::proto::Project&& project) : ImWindowBase() {
     Init();
     project_ = project;
 
+    if (project_.a4()) A4_ = project_.a4();
     wave_ = std::make_unique<sound::File>(project_.mutable_wave());
     fft_ = wvx::FFTChannel(project_.mutable_fft());
     fcache_.set_channel(&fft_);
+    fcache_.set_a4(A4_);
     ncache_.set_channel(&fft_);
+    ncache_.set_a4(A4_);
     ncache_.set_style(wvx::FFTImageCache::Logarithmic);
 }
 
 void AudioData::Init() {
+    A4_ = absl::GetFlag(FLAGS_A4);
     for (int y = 12; y < 128; ++y) {
         note_ys_.push_back(double(y - 12) * 5.0);
         snprintf(labels_[y - 12], 4, "%s%d", notes[y % 12], (y / 12) - 1);
@@ -142,11 +149,9 @@ void AudioData::DrawMenu() {
 }
 
 void AudioData::DrawGraph() {
-    static ImPlotRect lims(0, 1, 0, 1);
-
     if (ImPlot::BeginAlignedPlots("AlignedData")) {
         if (ImPlot::BeginPlot("Wave")) {
-            ImPlot::SetupAxisLinks(ImAxis_X1, &lims.X.Min, &lims.X.Max);
+            ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisFormat(ImAxis_X1, &AudioData::XFormat, this);
@@ -191,10 +196,11 @@ void AudioData::DrawGraph() {
         if (!display_notes_ &&
             ImPlot::BeginPlot("Spectrum", ImVec2(-1, 1024))) {
             double fmax = wave_->rate() / 2.0;
-            ImPlot::SetupAxisLinks(ImAxis_X1, &lims.X.Min, &lims.X.Max);
+            ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0, fmax);
+
             ImVec2 psz = ImPlot::GetPlotSize();
             auto bounds = ImPlot::GetPlotLimits();
             // Compute the ratio of plot size to pixels;
@@ -236,16 +242,24 @@ void AudioData::DrawGraph() {
                 }
             }
             SpectrumPopup("Spectrum");
+            if (ImPlot::DragLineY(0, &A4_, ImVec4(1, 0, 0, 1), 1,
+                                  ImPlotDragToolFlags_NoFit)) {
+                project_.set_a4(A4_);
+                fcache_.set_a4(A4_);
+                ncache_.set_a4(A4_);
+            }
+            ImPlot::TagY(A4_, ImVec4(1, 0, 0, 1), "A4");
             ImPlot::EndPlot();
         }
         if (display_notes_ && ImPlot::BeginPlot("Notes", ImVec2(-1, 1024))) {
             double nmax = 640;
-            ImPlot::SetupAxisLinks(ImAxis_X1, &lims.X.Min, &lims.X.Max);
+            ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0, nmax);
             ImPlot::SetupAxisTicks(ImAxis_Y1, note_ys_.data(), note_ys_.size(),
                                    note_labels_, false);
+
             ImVec2 psz = ImPlot::GetPlotSize();
             auto bounds = ImPlot::GetPlotLimits();
             // Compute the ratio of plot size to pixels;
