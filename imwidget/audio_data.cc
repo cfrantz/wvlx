@@ -1,5 +1,6 @@
 #include "imwidget/audio_data.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include "absl/flags/flag.h"
@@ -148,9 +149,152 @@ void AudioData::DrawMenu() {
     }
 }
 
+void AudioData::CalculateMarkers() {
+    event_.clear();
+    if (project_.event_size() == 0)
+            return;
+    std::stable_sort(
+                    project_.mutable_event()->begin(),
+                    project_.mutable_event()->end(),
+                    [](const wvx::proto::Event& a, const wvx::proto::Event& b) {
+                        return a.sample() < b.sample();
+                    });
+    double tempo = 120.0;
+    double n = 4, d = 4;
+    double rate = project_.wave().rate();
+    double spb = rate * 60.0 / tempo;
+    double sample = project_.event(0).sample();
+
+    for(int i=0; i<project_.event_size(); ++i) {
+        const auto& e = project_.event(i);
+        switch(e.event_case()) {
+            case wvx::proto::Event::EventCase::kEnd:
+                continue;
+            case wvx::proto::Event::EventCase::kTempo:
+                sample = e.sample();
+                tempo = e.tempo().bpm();
+                n = e.tempo().time().numerator();
+                d = e.tempo().time().denominator();
+                spb = rate * 60.0 / tempo;
+                event_.emplace_back(Event{
+                    EventType::Tempo,
+                    sample,
+                    0.0,
+                    i
+                });
+                sample += spb;
+                break;
+            default:
+                //event_.push_back(e);
+                ;
+        }
+        double end = (i+1 < project_.event_size()) ? project_.event(i+1).sample() : project_.wave().channel(0).data_size();
+        double beats = 1.0;
+        for(; sample < end; sample += spb) {
+            event_.emplace_back(Event {
+                EventType::Adjust,
+                sample,
+                beats,
+                i
+            });
+            beats += 1;
+        }
+    }
+}
+
+void AudioData::AddTempoMarker(double sample) {
+    auto* event = project_.add_event();
+    event->set_sample(sample);
+    event->mutable_tempo()->set_bpm(120);
+    event->mutable_tempo()->mutable_time()->set_numerator(4);
+    event->mutable_tempo()->mutable_time()->set_denominator(4);
+}
+
+bool AudioData::DrawTempoMarkers() {
+    CalculateMarkers();
+    bool wavectx = true;
+    int erase = -1;
+    for(size_t i=0; i<event_.size(); ++i) {
+        auto& event = event_.at(i);
+        ImVec4 color;
+        ImPlotDragToolFlags flags = ImPlotDragToolFlags_NoFit;
+        switch(event.type) {
+            case EventType::Adjust:
+                color = ImVec4(0.5, 0.5, 0.5, 1);
+                flags |= ImPlotDragToolFlags_GrabHandles;
+                break;
+            case EventType::Tempo:
+                color = ImVec4(0, 1, 0, 1);
+                break;
+            case EventType::End:
+                color = ImVec4(1, 0, 0, 1);
+                break;
+        }
+        ImGui::PushID(i);
+        bool hovered = false;
+        auto *e = project_.mutable_event(event.ref);
+        if (ImPlot::DragLineX(i, &event.sample, color, 1,
+                              flags, nullptr, &hovered)) {
+            switch(event.type) {
+                case EventType::Adjust: {
+                    double rate = project_.wave().rate();
+                    double time = (event.sample - e->sample()) / (rate * 60.0);
+                    double bpm = event.beats / time;
+                    e->mutable_tempo()->set_bpm(bpm);
+                    break;
+                }
+                case EventType::Tempo:
+                case EventType::End:
+                    e->set_sample(event.sample);
+                    break;
+            }
+        }
+        if (ImGui::BeginPopup("##DragContext")) {
+            switch(event.type) {
+                case EventType::Adjust:
+                    ImGui::Text("Adjust");
+                    break;
+                case EventType::End:
+                    ImGui::Text("End");
+                    break;
+                case EventType::Tempo: {
+                    double tempo = e->tempo().bpm();
+                    int n = e->tempo().time().numerator();
+                    int d = e->tempo().time().denominator();
+                    if (ImGui::InputDouble("Tempo", &tempo)) {
+                        e->mutable_tempo()->set_bpm(tempo);
+                    }
+                    if (ImGui::InputInt("Time Signature", &n)) {
+                        e->mutable_tempo()->mutable_time()->set_numerator(n);
+                    }
+                    if (ImGui::InputInt("##denominator", &d)) {
+                        e->mutable_tempo()->mutable_time()->set_denominator(d);
+                    }
+                    if (ImGui::Button("Delete")) {
+                        erase = event.ref;
+                    }
+                    break;
+                }
+            }
+            ImGui::EndPopup();
+        }
+        if (hovered) {
+            ImGui::OpenPopupOnItemClick("##DragContext");
+            wavectx = false;
+        }
+        ImGui::PopID();
+    }
+    if (erase != -1) {
+        auto *p = project_.mutable_event();
+        p->erase(p->begin() + erase);
+    }
+    return wavectx;
+}
+
 void AudioData::DrawGraph() {
     if (ImPlot::BeginAlignedPlots("AlignedData")) {
-        if (ImPlot::BeginPlot("Wave")) {
+        if (ImPlot::BeginPlot("Wave", ImVec2(-1, 0), ImPlotFlags_NoMenus)) {
+            ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
@@ -164,6 +308,16 @@ void AudioData::DrawGraph() {
             double xs[pixels], ys1[pixels], ys2[pixels];
             double x0 = std::max(0.0, bounds.X.Min);
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
+
+            bool wavectx = DrawTempoMarkers();
+            if (ImGui::BeginPopup("##WaveContext")) {
+                if (ImGui::MenuItem("Add Tempo Marker")) {
+                    ImPlotPoint pos = ImPlot::GetPlotMousePos();
+                    AddTempoMarker(pos.x);
+                }
+                ImGui::EndPopup();
+            }
+            if (wavectx) ImGui::OpenPopupOnItemClick("##WaveContext");
 
             if (xratio > 1.0) {
                 for (; count < pixels; ++count) {
@@ -196,6 +350,7 @@ void AudioData::DrawGraph() {
         if (!display_notes_ &&
             ImPlot::BeginPlot("Spectrum", ImVec2(-1, 1024))) {
             double fmax = wave_->rate() / 2.0;
+            ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
@@ -209,6 +364,16 @@ void AudioData::DrawGraph() {
             double x0 = std::max(0.0, bounds.X.Min);
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
             double bins = fft_.fftsz() / 2.0;
+
+            bool wavectx = DrawTempoMarkers();
+            if (ImGui::BeginPopup("##FftContext")) {
+                if (ImGui::MenuItem("Add Tempo Marker")) {
+                    ImPlotPoint pos = ImPlot::GetPlotMousePos();
+                    AddTempoMarker(pos.x);
+                }
+                ImGui::EndPopup();
+            }
+            if (wavectx) ImGui::OpenPopupOnItemClick("##FftContext");
 
             int images = 0;
             for (; count < pixels; ++count) {
@@ -253,6 +418,7 @@ void AudioData::DrawGraph() {
         }
         if (display_notes_ && ImPlot::BeginPlot("Notes", ImVec2(-1, 1024))) {
             double nmax = 640;
+            ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
@@ -267,6 +433,16 @@ void AudioData::DrawGraph() {
             int pixels = psz.x, count = 0;
             double x0 = std::max(0.0, bounds.X.Min);
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
+
+            bool wavectx = DrawTempoMarkers();
+            if (ImGui::BeginPopup("##NoteContext")) {
+                if (ImGui::MenuItem("Add Tempo Marker")) {
+                    ImPlotPoint pos = ImPlot::GetPlotMousePos();
+                    AddTempoMarker(pos.x);
+                }
+                ImGui::EndPopup();
+            }
+            if (wavectx) ImGui::OpenPopupOnItemClick("##NoteContext");
 
             int images = 0;
             for (; count < pixels; ++count) {

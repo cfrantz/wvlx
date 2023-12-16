@@ -17,9 +17,28 @@ message FFTCache {
     repeated Fragment fragment = 5;
 }
 
+message TimeSignature {
+    int32 numerator = 1;
+    int32 denominator = 2;
+}
+
+message TempoEvent {
+    double bpm = 1;
+    TimeSignature time = 2;
+}
+
+message Event {
+    int32 sample = 1;
+    oneof event {
+        bool end = 100;
+        TempoEvent tempo = 101;
+    }
+}
+
 message Project {
     string file_type_detector = 1;
     sound.proto.File wave = 2;
     FFTCache fft = 3;
     double a4 = 4;
+    repeated Event event = 5;
 }

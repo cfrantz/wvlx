@@ -18,7 +18,9 @@ google_deps()
 # ImGui
 ######################################################################
 load("//third_party/imgui:repos.bzl", "imgui_repos")
-imgui_repos()
+imgui_repos(
+    implot = "../imgui/implot",
+)
 load("//third_party/imgui:deps.bzl", "imgui_deps")
 imgui_deps()
 

@@ -39,5 +39,6 @@ def imgui_repos(
         url = "https://github.com/epezent/implot/archive/refs/tags/v0.16.tar.gz",
         sha256 = "",
         strip_prefix = "implot-0.16",
-        build_file = Label("//third_party/imgui:BUILD.implot.bazel"),
+        #build_file = Label("//third_party/imgui:BUILD.implot.bazel"),
+        build_file = "//third_party/imgui:BUILD.implot.bazel",
     )
