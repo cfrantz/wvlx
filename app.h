@@ -29,6 +29,7 @@ class App : public ImApp {
     static FileType DetectFileType(const std::string& filename);
 
   private:
+    void AudioCallback(float* stream, int len);
     std::string save_filename_;
     bool plot_demo_ = false;
 };

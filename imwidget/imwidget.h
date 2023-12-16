@@ -19,6 +19,9 @@ class ImWindowBase {
 
     virtual bool Draw() { return false; }
     virtual void Refresh() {}
+    virtual bool AudioCallback(float* stream, int len) {
+        return false;
+    }
     inline bool& visible() { return visible_; }
     inline void set_visible(bool v) { visible_ = v; }
     inline bool want_dispose() { return want_dispose_; }

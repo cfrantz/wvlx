@@ -59,6 +59,7 @@ class File {
         }
     }
     float Sample(int ch, double i) const { return Sample(ch, int(rate() * i)); }
+    float InterpolateAt(int ch, double tm) const;
     float Peak(int ch, int s0, int s1) const;
 
     const proto::File& data() const { return *file_; }
@@ -72,6 +73,8 @@ class File {
     }
 
   private:
+    float InterpolateCosine(int ch, double index) const;
+    float InterpolateCubic(int ch, double index) const;
     proto::File* file_ = nullptr;
     bool owning_ = false;
     mutable lru_cache::NodeLruCache<std::tuple<int, int, int>, float> peaks_;

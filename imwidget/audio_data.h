@@ -6,6 +6,7 @@
 #include "audio/fft_channel.h"
 #include "audio/fft_image_cache.h"
 #include "imwidget/imwidget.h"
+#include "imwidget/transport.h"
 #include "proto/wvx.pb.h"
 #include "util/sound/file.h"
 
@@ -16,6 +17,7 @@ class AudioData : public ImWindowBase {
     ~AudioData() override {}
 
     bool Draw() override;
+    bool AudioCallback(float* stream, int len) override;
 
   private:
     enum EventType {
@@ -37,6 +39,7 @@ class AudioData : public ImWindowBase {
     bool DrawTempoMarkers();
     void CalculateMarkers();
 
+    void DrawPlayHead(bool follow=false);
     const char* ApproximateNote(double f) const;
     static int XFormat(double value, char* buf, int size, void* data);
 
@@ -46,6 +49,8 @@ class AudioData : public ImWindowBase {
     wvx::FFTImageCache fcache_;
     wvx::FFTImageCache ncache_;
     bool display_notes_ = false;
+    Transport transport_ = { false, 1.0, 0.0, 0.0 };
+    double frame_time_ = 0.0;
 
     std::vector<Event> event_;
     std::vector<double> note_ys_;

@@ -161,4 +161,44 @@ float File::Peak(int ch, int s0, int s1) const {
     return peaks_.insert(key, peak);
 }
 
+float File::InterpolateAt(int ch, double tm) const {
+    double index = tm * file_->rate();
+    int len = file_->channel(ch).data_size();
+    double val;
+    if (index < 1.0) {
+        val = InterpolateCosine(ch, index);
+    } else if (index >= len - 1) {
+        val = file_->channel(ch).data(int(index));
+    } else if (index >= len - 3) {
+        val = InterpolateCosine(ch, index);
+    } else {
+        val = InterpolateCubic(ch, index);
+    }
+    return val;
+}
+
+float File::InterpolateCosine(int ch, double index) const {
+    double i;
+    double f = modf(index, &i);
+    int x = i;
+    float y1 = file_->channel(ch).data(x);
+    float y2 = file_->channel(ch).data(x + 1);
+    float mu = (1.0f - cosf(f * PI)) / 2.0f;
+    return y1 * (1.0 - mu) + y2 * mu;
+}
+
+float File::InterpolateCubic(int ch, double index) const {
+    double i;
+    double f = modf(index, &i);
+    int x = i;
+    float y0 = file_->channel(ch).data(x - 1);
+    float y1 = file_->channel(ch).data(x);
+    float y2 = file_->channel(ch).data(x + 1);
+    float y3 = file_->channel(ch).data(x + 2);
+    return y1 + 0.5 * f *
+                    (y2 - y0 +
+                     f * (2.0 * y0 - 5.0 * y1 + 4.0 * y2 - y3 +
+                          f * (3.0 * (y1 - y2) + y3 - y0)));
+}
+
 }  // namespace sound

@@ -96,16 +96,14 @@ cc_library(
 )
 
 cc_library(
-    name = "imgui_sdl_opengl",
-    srcs = [
-        "fontawesome.h",
-        "imgui_impl_sdl.cpp",
-    ],
-    hdrs = [
-        "imgui_impl_sdl.h",
-    ],
+    name = "fontawesome",
+    srcs = ["fontawesome.cc"],
+    hdrs = ["fontawesome.h"],
     deps = [
-        "//external:fontawesome",
-        "//external:imgui",
+        ":file",
+        "//third_party/fonts/fontawesome:regular",
+        "@com_github_imgui//:imgui",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )

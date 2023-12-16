@@ -28,7 +28,9 @@ App::App(const std::string& name) : ImApp(name, 1280, 720) {
 }
 App::~App() { ImPlot::DestroyContext(); }
 
-void App::Init() {}
+void App::Init() {
+    InitAudio(48000, 1, 1024, AUDIO_F32);
+}
 
 void App::ProcessEvent(SDL_Event* event) {}
 
@@ -193,6 +195,22 @@ App::FileType App::DetectFileType(const std::string& filename) {
     }
     return FileType::Unknown;
 }
+
 void App::Help(const std::string& topickey) {}
+
+void App::AudioCallback(float* stream, int len) {
+    memset(stream, 0, len*sizeof(float));
+    float n = 0.0;
+    for(auto& a : draw_callback_) {
+        if (a->AudioCallback(stream, len)) {
+            n += 1.0;
+        }
+    }
+    if (n > 0.0) {
+        for(int i=0; i<len; ++i) {
+            stream[i] /= n;
+        }
+    }
+}
 
 }  // namespace project

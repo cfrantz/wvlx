@@ -114,6 +114,7 @@ void AudioData::SpectrumPopup(const char* name) {
 bool AudioData::Draw() {
     ImGui::Begin("Audio Data", &visible_, ImGuiWindowFlags_MenuBar);
     DrawMenu();
+    TransportWidget(&transport_);
     DrawGraph();
     ImGui::End();
     if (!visible_) want_dispose_ = true;
@@ -291,12 +292,36 @@ bool AudioData::DrawTempoMarkers() {
     return wavectx;
 }
 
+void AudioData::DrawPlayHead(bool follow) {
+    ImGui::PushID("Playhead");
+    if (ImPlot::DragLineX(0, &frame_time_, ImVec4(1,0,0,1), ImPlotDragToolFlags_NoFit)) {
+        transport_.time = frame_time_ / wave_->rate();
+    }
+    ImGui::PopID();
+}
+
 void AudioData::DrawGraph() {
+    frame_time_ = transport_.frame_time * wave_->rate();
     if (ImPlot::BeginAlignedPlots("AlignedData")) {
         if (ImPlot::BeginPlot("Wave", ImVec2(-1, 0), ImPlotFlags_NoMenus)) {
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
             ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
+            if (transport_.playing) {
+                double tm = wave_->rate() * transport_.time;
+                double sz = (limits_.X.Max - limits_.X.Min);
+                double t0 = tm - sz / 2.0;
+                if (t0 < 0.0) t0 = 0.0;
+
+                double t1 = t0 + sz;
+                if (t1 >= wave_->size()) {
+                    t1 = wave_->size();
+                    t0 = t1 - sz;
+                }
+                limits_.X.Min = t0;
+                limits_.X.Max = t1;
+                ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
+            }
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisFormat(ImAxis_X1, &AudioData::XFormat, this);
             ImPlot::SetupAxisLimits(ImAxis_Y1, -1, 1, ImPlotCond_Always);
@@ -309,6 +334,7 @@ void AudioData::DrawGraph() {
             double x0 = std::max(0.0, bounds.X.Min);
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
 
+            DrawPlayHead();
             bool wavectx = DrawTempoMarkers();
             if (ImGui::BeginPopup("##WaveContext")) {
                 if (ImGui::MenuItem("Add Tempo Marker")) {
@@ -352,7 +378,7 @@ void AudioData::DrawGraph() {
             double fmax = wave_->rate() / 2.0;
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
-            ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
+            //ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0, fmax);
 
@@ -365,6 +391,7 @@ void AudioData::DrawGraph() {
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
             double bins = fft_.fftsz() / 2.0;
 
+            DrawPlayHead();
             bool wavectx = DrawTempoMarkers();
             if (ImGui::BeginPopup("##FftContext")) {
                 if (ImGui::MenuItem("Add Tempo Marker")) {
@@ -420,7 +447,7 @@ void AudioData::DrawGraph() {
             double nmax = 640;
             ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoGridLines);
             ImPlot::SetupAxisLinks(ImAxis_X1, &limits_.X.Min, &limits_.X.Max);
-            ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
+            //ImPlot::SetupAxisLimits(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, wave_->size());
             ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0, nmax);
             ImPlot::SetupAxisTicks(ImAxis_Y1, note_ys_.data(), note_ys_.size(),
@@ -434,6 +461,7 @@ void AudioData::DrawGraph() {
             double x0 = std::max(0.0, bounds.X.Min);
             double xmax = std::min(bounds.X.Max, double(wave_->size()));
 
+            DrawPlayHead();
             bool wavectx = DrawTempoMarkers();
             if (ImGui::BeginPopup("##NoteContext")) {
                 if (ImGui::MenuItem("Add Tempo Marker")) {
@@ -465,4 +493,22 @@ void AudioData::DrawGraph() {
 
         ImPlot::EndAlignedPlots();
     }
+}
+
+bool AudioData::AudioCallback(float *stream, int len) {
+    if (!transport_.playing) {
+        return false;
+    }
+    if (transport_.time < 0.0) transport_.time = 0.0;
+    transport_.frame_time = transport_.time;
+    double delta = (1.0 / 48000.0) * transport_.speed;
+    for(int i=0; i<len; ++i) {
+        if (transport_.time > wave_->length()) {
+            transport_.playing = false;
+            break;
+        }
+        stream[i] += wave_->InterpolateAt(0, transport_.time); 
+        transport_.time += delta;
+    }
+    return true;
 }
