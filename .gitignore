@@ -1,4 +1,5 @@
 *.wav
 *.wvx
+*.mp3
 imgui.ini
 bazel-*

@@ -27,9 +27,12 @@ class AudioData : public ImWindowBase {
     };
     struct Event {
         EventType type;
+        int ref;
         double sample;
         double beats;
-        int ref;
+        int id() {
+            return (int)type + ref + beats * 1024;
+        }
     };
     void Init();
     void SpectrumPopup(const char* name);
@@ -38,6 +41,8 @@ class AudioData : public ImWindowBase {
     void AddTempoMarker(double sample);
     bool DrawTempoMarkers();
     void CalculateMarkers();
+    void CalculateTimeline();
+    void DrawTimeline();
 
     void DrawPlayHead(bool follow=false);
     const char* ApproximateNote(double f) const;
@@ -51,6 +56,9 @@ class AudioData : public ImWindowBase {
     bool display_notes_ = false;
     Transport transport_ = { false, 1.0, 0.0, 0.0 };
     double frame_time_ = 0.0;
+
+    std::vector<double> timeline_;
+    std::vector<std::string> timeline_label_;
 
     std::vector<Event> event_;
     std::vector<double> note_ys_;
